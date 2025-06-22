@@ -1,6 +1,96 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Hi, {{ current_user.username }}!</h1>
-    <p>Welcome to the Quiz App.</p>
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="text-center mb-5">
+      <div class="mb-4">
+        <i class="bi bi-lightbulb text-primary" style="font-size: 4rem;"></i>
+      </div>
+      <h1 class="display-4 mb-3">Welcome to Betabrains!</h1>
+      <p class="lead text-muted mb-4">
+        Your intelligent quiz platform for personalized learning and AI-powered tutoring.
+      </p>
+      {% if current_user.is_authenticated %}
+        <div class="alert alert-success">
+          <i class="bi bi-person-check me-2"></i>
+          <strong>Hi, {{ current_user.username }}!</strong> Ready to continue your learning journey?
+        </div>
+      {% else %}
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Get started!</strong> Register or login to access quizzes and AI tutoring.
+        </div>
+      {% endif %}
+    </div>
+    
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <div class="mb-3">
+              <i class="bi bi-pencil-square text-primary" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="card-title">Interactive Quizzes</h5>
+            <p class="card-text text-muted">Take quizzes by grade and subject with instant feedback and detailed explanations.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <div class="mb-3">
+              <i class="bi bi-robot text-success" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="card-title">AI Tutor</h5>
+            <p class="card-text text-muted">Get personalized help from our AI tutor for any question or concept.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm">
+          <div class="card-body text-center p-4">
+            <div class="mb-3">
+              <i class="bi bi-graph-up text-info" style="font-size: 2.5rem;"></i>
+            </div>
+            <h5 class="card-title">Progress Tracking</h5>
+            <p class="card-text text-muted">Monitor your performance with detailed analytics and improvement suggestions.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    {% if current_user.is_authenticated %}
+      <div class="row mt-5">
+        <div class="col-12 text-center">
+          {% if current_user.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary btn-lg me-3">
+              <i class="bi bi-speedometer2 me-2"></i>Admin Dashboard
+            </a>
+          {% else %}
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-primary btn-lg me-3">
+              <i class="bi bi-speedometer2 me-2"></i>Student Dashboard
+            </a>
+          {% endif %}
+          <a href="{{ url_for('select_quiz') }}" class="btn btn-outline-primary btn-lg">
+            <i class="bi bi-play-fill me-2"></i>Start Quiz
+          </a>
+        </div>
+      </div>
+    {% else %}
+      <div class="row mt-5">
+        <div class="col-12 text-center">
+          <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Login
+          </a>
+          <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">
+            <i class="bi bi-person-plus me-2"></i>Register
+          </a>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %} 

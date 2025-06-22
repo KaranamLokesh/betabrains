@@ -1,0 +1,167 @@
+/* Custom styles for Betabrains Quiz App */
+
+:root {
+  --primary-color: #0d6efd;
+  --secondary-color: #6c757d;
+  --success-color: #198754;
+  --info-color: #0dcaf0;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --light-color: #f8f9fa;
+  --dark-color: #212529;
+}
+
+/* Smooth transitions */
+.card, .btn, .form-control, .form-select {
+  transition: all 0.3s ease;
+}
+
+/* Card hover effects */
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Custom button styles */
+.btn-primary {
+  background: linear-gradient(45deg, var(--primary-color), #0056b3);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(45deg, #0056b3, var(--primary-color));
+  transform: translateY(-1px);
+}
+
+/* Form styling */
+.form-control:focus, .form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Custom navbar styling */
+.navbar-brand {
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* Progress bar styling */
+.progress {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  transition: width 0.6s ease;
+}
+
+/* Badge styling */
+.badge {
+  font-weight: 500;
+}
+
+/* Alert styling */
+.alert {
+  border: none;
+  border-radius: 10px;
+}
+
+/* Table styling */
+.table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table thead th {
+  border-top: none;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+}
+
+/* Chat message styling */
+.message {
+  position: relative;
+}
+
+.message::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+}
+
+.message.bg-primary::before {
+  right: -8px;
+  border-left-color: var(--primary-color);
+}
+
+.message.bg-light::before {
+  left: -8px;
+  border-right-color: #e9ecef;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Loading animation */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .btn-lg {
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+  
+  .display-4 {
+    font-size: 2rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .btn, .navbar, .card-header {
+    display: none !important;
+  }
+  
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+} 
