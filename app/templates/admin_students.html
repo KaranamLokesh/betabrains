@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h2 mb-1">Student Analysis</h1>
+        <p class="text-muted mb-0">Detailed student performance and filtering</p>
+      </div>
+      <div class="text-end">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Section -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="bi bi-funnel me-2"></i>Filter Students
+    </h5>
+  </div>
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('admin_students') }}">
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label for="search" class="form-label">Search Students</label>
+          <input type="text" name="search" id="search" class="form-control" 
+                 placeholder="Search by username or email" 
+                 value="{{ search_term }}">
+        </div>
+        <div class="col-md-3">
+          <label for="grade" class="form-label">Grade</label>
+          <select name="grade" id="grade" class="form-select">
+            <option value="all" {% if selected_grade == 'all' %}selected{% endif %}>All Grades</option>
+            {% for grade in grades %}
+              <option value="{{ grade[0] }}" {% if selected_grade == grade[0]|string %}selected{% endif %}>Grade {{ grade[0] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label for="subject" class="form-label">Subject</label>
+          <select name="subject" id="subject" class="form-select">
+            <option value="all" {% if selected_subject == 'all' %}selected{% endif %}>All Subjects</option>
+            {% for subject in subjects %}
+              <option value="{{ subject[0] }}" {% if selected_subject == subject[0] %}selected{% endif %}>{{ subject[0] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <div class="d-flex gap-2 w-100">
+            <button type="submit" class="btn btn-primary flex-fill">
+              <i class="bi bi-search me-2"></i>Filter
+            </button>
+            <a href="{{ url_for('admin_students') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-x-circle"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Results Summary -->
+{% if student_stats %}
+  <div class="alert alert-info mb-4">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-info-circle me-2"></i>
+      <div>
+        <h4 class="alert-heading mb-1">Results Summary</h4>
+        <p class="mb-1"><strong>Found {{ student_stats|length }} student{{ 's' if student_stats|length != 1 else '' }}</strong></p>
+        {% if student_stats|length > 0 %}
+          {% set active_students = student_stats|selectattr('total_attempts', 'gt', 0)|list %}
+          <p class="mb-1"><strong>Active Students:</strong> {{ active_students|length }}</p>
+          {% if active_students %}
+            {% set avg_performance = (active_students|sum(attribute='avg_performance') / active_students|length) %}
+            <p class="mb-0"><strong>Average Performance:</strong> {{ "%.1f"|format(avg_performance) }}%</p>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Metrics Cards -->
+  <div class="row g-4 mb-4">
+    {% set active_students = student_stats|selectattr('total_attempts', 'gt', 0)|list %}
+    {% set inactive_students = student_stats|selectattr('total_attempts', 'equalto', 0)|list %}
+    {% set high_performers = active_students|selectattr('avg_performance', 'ge', 80)|list %}
+    {% set medium_performers = active_students|selectattr('avg_performance', 'ge', 60)|selectattr('avg_performance', 'lt', 80)|list %}
+    {% set low_performers = active_students|selectattr('avg_performance', 'lt', 60)|list %}
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ active_students|length }}</h4>
+          <p class="card-text text-muted mb-0">Active Students</p>
+          <small class="text-muted">{{ "%.1f"|format((active_students|length / student_stats|length * 100) if student_stats|length > 0 else 0) }}% of total</small>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-trophy text-success" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ high_performers|length }}</h4>
+          <p class="card-text text-muted mb-0">High Performers</p>
+          <small class="text-muted">≥80% average</small>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-graph-up text-warning" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ medium_performers|length }}</h4>
+          <p class="card-text text-muted mb-0">Medium Performers</p>
+          <small class="text-muted">60-79% average</small>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ low_performers|length }}</h4>
+          <p class="card-text text-muted mb-0">Need Support</p>
+          <small class="text-muted">&lt;60% average</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance Distribution Chart -->
+  <div class="row g-4 mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-pie-chart me-2"></i>Performance Distribution
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-center">
+            <div class="position-relative" style="width: 200px; height: 200px;">
+              <!-- High Performers -->
+              <div class="position-absolute" style="width: 200px; height: 200px; border-radius: 50%; background: conic-gradient(#28a745 0deg {{ (high_performers|length / active_students|length * 360) if active_students|length > 0 else 0 }}deg, #ffc107 {{ (high_performers|length / active_students|length * 360) if active_students|length > 0 else 0 }}deg {{ ((high_performers|length + medium_performers|length) / active_students|length * 360) if active_students|length > 0 else 0 }}deg, #dc3545 {{ ((high_performers|length + medium_performers|length) / active_students|length * 360) if active_students|length > 0 else 0 }}deg 360deg);"></div>
+              <div class="position-absolute" style="width: 120px; height: 120px; border-radius: 50%; background: white; top: 40px; left: 40px;"></div>
+              <div class="position-absolute w-100 h-100 d-flex align-items-center justify-content-center">
+                <div class="text-center">
+                  <h4 class="mb-0">{{ active_students|length }}</h4>
+                  <small class="text-muted">Active</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row mt-3 text-center">
+            <div class="col-4">
+              <div class="d-flex align-items-center justify-content-center">
+                <div class="bg-success rounded me-2" style="width: 12px; height: 12px;"></div>
+                <small>High</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="d-flex align-items-center justify-content-center">
+                <div class="bg-warning rounded me-2" style="width: 12px; height: 12px;"></div>
+                <small>Medium</small>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="d-flex align-items-center justify-content-center">
+                <div class="bg-danger rounded me-2" style="width: 12px; height: 12px;"></div>
+                <small>Low</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-bar-chart me-2"></i>Performance Ranges
+          </h5>
+        </div>
+        <div class="card-body">
+          {% set ranges = [
+            {'min': 0, 'max': 20, 'label': '0-20%', 'color': 'danger'},
+            {'min': 20, 'max': 40, 'label': '20-40%', 'color': 'warning'},
+            {'min': 40, 'max': 60, 'label': '40-60%', 'color': 'info'},
+            {'min': 60, 'max': 80, 'label': '60-80%', 'color': 'primary'},
+            {'min': 80, 'max': 100, 'label': '80-100%', 'color': 'success'}
+          ] %}
+          
+          {% for range in ranges %}
+            {% set count = active_students|selectattr('avg_performance', 'ge', range.min)|selectattr('avg_performance', 'lt', range.max)|list|length %}
+            {% set percentage = (count / active_students|length * 100) if active_students|length > 0 else 0 %}
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted">{{ range.label }}</small>
+                <small class="text-muted">{{ count }} students</small>
+              </div>
+              <div class="progress" style="height: 8px;">
+                <div class="progress-bar bg-{{ range.color }}" role="progressbar" style="width: {{ percentage }}%" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Performers Highlight -->
+  {% if high_performers %}
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success bg-opacity-10">
+          <h5 class="card-title mb-0 text-success">
+            <i class="bi bi-trophy me-2"></i>Top Performers (≥80% Average)
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            {% for performer in high_performers[:6] %}
+            <div class="col-md-4 mb-3">
+              <div class="d-flex align-items-center p-3 border rounded">
+                <div class="me-3">
+                  <i class="bi bi-person-circle text-success" style="font-size: 2rem;"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h6 class="mb-1">{{ performer.student.username }}</h6>
+                  <div class="d-flex justify-content-between">
+                    <small class="text-muted">{{ performer.total_attempts }} attempts</small>
+                    <span class="badge bg-success">{{ "%.1f"|format(performer.avg_performance) }}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+{% endif %}
+
+<!-- Students Table -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-people me-2"></i>Student Performance
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if student_stats %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Student</th>
+                  <th>Email</th>
+                  <th>Total Attempts</th>
+                  <th>Avg Performance</th>
+                  <th>Best Score</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for stat in student_stats %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-person-circle me-2"></i>
+                      {{ stat.student.username }}
+                    </div>
+                  </td>
+                  <td>{{ stat.student.email }}</td>
+                  <td>
+                    <span class="badge bg-secondary">{{ stat.total_attempts }}</span>
+                  </td>
+                  <td>
+                    {% if stat.total_attempts > 0 %}
+                      <div class="d-flex align-items-center">
+                        <span class="badge {% if stat.avg_performance >= 80 %}bg-success{% elif stat.avg_performance >= 60 %}bg-warning{% else %}bg-danger{% endif %} me-2">
+                          {{ "%.1f"|format(stat.avg_performance) }}%
+                        </span>
+                        <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                          <div class="progress-bar {% if stat.avg_performance >= 80 %}bg-success{% elif stat.avg_performance >= 60 %}bg-warning{% else %}bg-danger{% endif %}" 
+                               role="progressbar" style="width: {{ stat.avg_performance }}%" 
+                               aria-valuenow="{{ stat.avg_performance }}" aria-valuemin="0" aria-valuemax="100">
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      <span class="badge bg-light text-dark">No attempts</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if stat.total_attempts > 0 %}
+                      <span class="badge {% if stat.best_percentage >= 80 %}bg-success{% elif stat.best_percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                        {{ "%.1f"|format(stat.best_percentage) }}%
+                      </span>
+                    {% else %}
+                      <span class="badge bg-light text-dark">No attempts</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{{ url_for('admin_view_student_performance', student_id=stat.student.id) }}" class="btn btn-sm btn-outline-primary" title="View Performance">
+                      <i class="bi bi-eye me-1"></i>View
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center p-5">
+            <i class="bi bi-exclamation-circle text-warning" style="font-size: 3rem;"></i>
+            <h4 class="mt-3">No Students Found</h4>
+            <p class="text-muted mb-4">No students match your current filters.</p>
+            <a href="{{ url_for('admin_students') }}" class="btn btn-primary">
+              <i class="bi bi-arrow-clockwise me-2"></i>Clear Filters
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12 text-center">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %} 

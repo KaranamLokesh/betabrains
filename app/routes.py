@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from flask import flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from openai import OpenAI
@@ -5,14 +7,17 @@ from openai import OpenAI
 from app import app, db
 from app.forms import (
     ChatForm,
+    GradeForm,
     LoginForm,
     PerformanceFilterForm,
     PracticeForm,
     QuestionForm,
     QuizForm,
     RegistrationForm,
+    StudentAssignmentForm,
+    SubjectForm,
 )
-from app.models import Question, StudentPerformance, User
+from app.models import Grade, Question, StudentPerformance, Subject, User
 
 
 @app.route("/")
@@ -232,9 +237,121 @@ def view_performance():
 def admin_dashboard():
     if current_user.role != "admin":
         return redirect(url_for("index"))
+
+    # Get all questions
     questions = Question.query.all()
+
+    # Get all students
+    students = User.query.filter_by(role="student").all()
+
+    # Get all performances
+    performances = StudentPerformance.query.all()
+
+    # Get unique grades and subjects for navigation
+    grades = db.session.query(Question.grade).distinct().all()
+    subjects = db.session.query(Question.subject).distinct().all()
+
+    # Calculate basic statistics
+    total_students = len(students)
+    total_questions = len(questions)
+    total_attempts = len(performances)
+
+    # Calculate average performance
+    if performances:
+        total_score = sum(p.score for p in performances)
+        total_possible = sum(p.total_questions for p in performances)
+        avg_performance = (
+            (total_score / total_possible * 100) if total_possible > 0 else 0
+        )
+    else:
+        avg_performance = 0
+
+    # Get top performing students (top 5)
+    top_students = (
+        db.session.query(
+            User.username,
+            StudentPerformance.student_id,
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).label("avg_score"),
+            db.func.count(StudentPerformance.id).label("attempts"),
+        )
+        .join(StudentPerformance, User.id == StudentPerformance.student_id)
+        .group_by(User.id, User.username)
+        .order_by(
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).desc()
+        )
+        .limit(5)
+        .all()
+    )
+
+    # Get recent activity (last 10 attempts)
+    recent_attempts = (
+        StudentPerformance.query.join(User, StudentPerformance.student_id == User.id)
+        .order_by(
+            StudentPerformance.timestamp.desc()
+            if StudentPerformance.timestamp
+            else StudentPerformance.id.desc()
+        )
+        .limit(10)
+        .all()
+    )
+
+    # Get performance by subject (top 5)
+    subject_performance = (
+        db.session.query(
+            StudentPerformance.quiz_subject,
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).label("avg_score"),
+            db.func.count(StudentPerformance.id).label("attempts"),
+        )
+        .group_by(StudentPerformance.quiz_subject)
+        .order_by(
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).desc()
+        )
+        .limit(5)
+        .all()
+    )
+
+    # Get performance by grade (top 5)
+    grade_performance = (
+        db.session.query(
+            StudentPerformance.quiz_grade,
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).label("avg_score"),
+            db.func.count(StudentPerformance.id).label("attempts"),
+        )
+        .group_by(StudentPerformance.quiz_grade)
+        .order_by(
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).desc()
+        )
+        .limit(5)
+        .all()
+    )
+
     return render_template(
-        "admin_dashboard.html", title="Admin Dashboard", questions=questions
+        "admin_dashboard.html",
+        title="Admin Dashboard",
+        questions=questions,
+        students=students,
+        grades=grades,
+        subjects=subjects,
+        top_students=top_students,
+        recent_attempts=recent_attempts,
+        subject_performance=subject_performance,
+        grade_performance=grade_performance,
+        total_students=total_students,
+        total_questions=total_questions,
+        total_attempts=total_attempts,
+        avg_performance=avg_performance,
     )
 
 
@@ -243,7 +360,17 @@ def admin_dashboard():
 def add_question():
     if current_user.role != "admin":
         return redirect(url_for("index"))
+
     form = QuestionForm()
+
+    # Populate grade and subject choices
+    grades = Grade.query.all()
+    form.grade.choices = [(grade.name, grade.name) for grade in grades]
+
+    # Get subjects for the selected grade (will be populated via AJAX or on form load)
+    subjects = Subject.query.all()
+    form.subject.choices = [(subject.name, subject.name) for subject in subjects]
+
     if form.validate_on_submit():
         question = Question(
             grade=form.grade.data,
@@ -261,7 +388,95 @@ def add_question():
         db.session.commit()
         flash("Question has been added.")
         return redirect(url_for("admin_dashboard"))
+
     return render_template("add_question.html", title="Add Question", form=form)
+
+
+@app.route("/admin/manage_grades", methods=["GET", "POST"])
+@login_required
+def manage_grades():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    form = GradeForm()
+    if form.validate_on_submit():
+        grade = Grade(name=form.name.data, description=form.description.data)
+        db.session.add(grade)
+        db.session.commit()
+        flash(f"Grade '{form.name.data}' has been added.")
+        return redirect(url_for("manage_grades"))
+
+    grades = Grade.query.all()
+    return render_template(
+        "admin_manage_grades.html", title="Manage Grades", form=form, grades=grades
+    )
+
+
+@app.route("/admin/manage_subjects", methods=["GET", "POST"])
+@login_required
+def manage_subjects():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    form = SubjectForm()
+
+    # Populate grade choices
+    grades = Grade.query.all()
+    form.grade.choices = [(grade.id, grade.name) for grade in grades]
+
+    if form.validate_on_submit():
+        subject = Subject(
+            name=form.name.data,
+            grade_id=form.grade.data,
+            description=form.description.data,
+        )
+        db.session.add(subject)
+        db.session.commit()
+        flash(f"Subject '{form.name.data}' has been added.")
+        return redirect(url_for("manage_subjects"))
+
+    subjects = Subject.query.all()
+    return render_template(
+        "admin_manage_subjects.html",
+        title="Manage Subjects",
+        form=form,
+        subjects=subjects,
+    )
+
+
+@app.route("/admin/manage_students", methods=["GET", "POST"])
+@login_required
+def manage_students():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    form = StudentAssignmentForm()
+
+    # Populate student and grade choices
+    students = User.query.filter_by(role="student").all()
+    form.student.choices = [
+        (student.id, f"{student.username} ({student.email})") for student in students
+    ]
+
+    grades = Grade.query.all()
+    form.grade.choices = [(grade.id, grade.name) for grade in grades]
+
+    if form.validate_on_submit():
+        student = User.query.get(form.student.data)
+        student.grade_id = form.grade.data
+        db.session.commit()
+        flash(
+            f"Student '{student.username}' has been assigned to {student.grade.name}."
+        )
+        return redirect(url_for("manage_students"))
+
+    students_with_grades = User.query.filter_by(role="student").all()
+    return render_template(
+        "admin_manage_students.html",
+        title="Manage Students",
+        form=form,
+        students=students_with_grades,
+    )
 
 
 @app.route("/quiz/select")
@@ -318,16 +533,32 @@ def take_quiz(grade, subject):
 @login_required
 def quiz_results(performance_id):
     performance = StudentPerformance.query.get_or_404(performance_id)
-    user_answers = session.get("user_answers", {})
+
+    # Check if current user is admin or the student who took the quiz
+    is_admin = current_user.role == "admin"
+    is_own_quiz = current_user.id == performance.student_id
+
+    if is_admin:
+        # For admin users, show view-only mode without user answers
+        user_answers = {}
+        view_mode = "admin"
+    else:
+        # For students, get their actual answers from session
+        user_answers = session.get("user_answers", {})
+        view_mode = "student"
+
     questions = Question.query.filter_by(
         grade=performance.quiz_grade, subject=performance.quiz_subject
     ).all()
+
     return render_template(
         "results.html",
         title="Quiz Results",
         performance=performance,
         questions=questions,
         user_answers=user_answers,
+        view_mode=view_mode,
+        is_admin=is_admin,
     )
 
 
@@ -449,6 +680,7 @@ The student is asking for help with this specific question. Provide helpful guid
                 form=form,
                 chat_history=chat_history,
                 current_question=current_question,
+                context_type=context_type,
             )
 
         except Exception as e:
@@ -459,6 +691,7 @@ The student is asking for help with this specific question. Provide helpful guid
                 form=form,
                 chat_history=chat_history,
                 current_question=current_question,
+                context_type=context_type,
             )
 
     return render_template(
@@ -467,6 +700,7 @@ The student is asking for help with this specific question. Provide helpful guid
         form=form,
         chat_history=chat_history,
         current_question=current_question,
+        context_type=context_type,
     )
 
 
@@ -476,3 +710,377 @@ def clear_chat():
     session.pop("chat_history", None)
     flash("Chat history cleared.")
     return redirect(url_for("chat_with_tutor"))
+
+
+@app.route("/admin/student/<int:student_id>/performance")
+@login_required
+def admin_view_student_performance(student_id):
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    # Get the student
+    student = User.query.get_or_404(student_id)
+    if student.role != "student":
+        flash("Invalid student ID.")
+        return redirect(url_for("admin_dashboard"))
+
+    # Get filter parameters
+    selected_subject = request.args.get("subject", "all")
+    selected_grade = request.args.get("grade", "all")
+    selected_sort = request.args.get("sort_by", "date_desc")
+
+    # Get all subjects and grades for the dropdowns
+    subjects = (
+        db.session.query(StudentPerformance.quiz_subject)
+        .filter_by(student_id=student_id)
+        .distinct()
+        .all()
+    )
+    grades = (
+        db.session.query(StudentPerformance.quiz_grade)
+        .filter_by(student_id=student_id)
+        .distinct()
+        .all()
+    )
+
+    subject_choices = [("all", "All Subjects")] + [
+        (subject[0], subject[0]) for subject in subjects
+    ]
+    grade_choices = [("all", "All Grades")] + [
+        (grade[0], f"Grade {grade[0]}") for grade in grades
+    ]
+
+    # Get all past performances for this student
+    query = StudentPerformance.query.filter_by(student_id=student_id)
+
+    # Apply subject filter
+    if selected_subject and selected_subject != "all":
+        query = query.filter_by(quiz_subject=selected_subject)
+
+    # Apply grade filter
+    if selected_grade and selected_grade != "all":
+        query = query.filter_by(quiz_grade=selected_grade)
+
+    # Apply sorting
+    if selected_sort == "date_desc":
+        query = query.order_by(StudentPerformance.id.desc())
+    elif selected_sort == "date_asc":
+        query = query.order_by(StudentPerformance.id.asc())
+    elif selected_sort == "score_desc":
+        query = query.order_by(StudentPerformance.score.desc())
+    elif selected_sort == "score_asc":
+        query = query.order_by(StudentPerformance.score.asc())
+    elif selected_sort == "subject":
+        query = query.order_by(
+            StudentPerformance.quiz_subject, StudentPerformance.id.desc()
+        )
+    elif selected_sort == "grade":
+        query = query.order_by(
+            StudentPerformance.quiz_grade, StudentPerformance.id.desc()
+        )
+
+    performances = query.all()
+
+    # Calculate statistics
+    total_attempts = len(performances)
+    if performances:
+        total_score = sum(p.score for p in performances)
+        total_questions = sum(p.total_questions for p in performances)
+        avg_score = (total_score * 100 / total_questions) if total_questions > 0 else 0
+        best_performance = max(
+            performances,
+            key=lambda p: p.score / p.total_questions if p.total_questions > 0 else 0,
+        )
+        best_percentage = (
+            (best_performance.score / best_performance.total_questions * 100)
+            if best_performance.total_questions > 0
+            else 0
+        )
+    else:
+        avg_score = 0
+        best_percentage = 0
+        best_performance = None
+
+    # Get performance by subject
+    subject_performance = (
+        db.session.query(
+            StudentPerformance.quiz_subject,
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).label("avg_score"),
+            db.func.count(StudentPerformance.id).label("attempts"),
+        )
+        .filter_by(student_id=student_id)
+        .group_by(StudentPerformance.quiz_subject)
+        .order_by(
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).desc()
+        )
+        .all()
+    )
+
+    # Get performance by grade
+    grade_performance = (
+        db.session.query(
+            StudentPerformance.quiz_grade,
+            db.func.avg(
+                StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+            ).label("avg_score"),
+            db.func.count(StudentPerformance.id).label("attempts"),
+        )
+        .filter_by(student_id=student_id)
+        .group_by(StudentPerformance.quiz_grade)
+        .order_by(StudentPerformance.quiz_grade)
+        .all()
+    )
+
+    return render_template(
+        "admin_student_performance.html",
+        title=f"Student Performance - {student.username}",
+        student=student,
+        performances=performances,
+        subject_choices=subject_choices,
+        grade_choices=grade_choices,
+        subject_performance=subject_performance,
+        grade_performance=grade_performance,
+        total_attempts=total_attempts,
+        avg_score=avg_score,
+        best_percentage=best_percentage,
+        best_performance=best_performance,
+        selected_subject=selected_subject,
+        selected_grade=selected_grade,
+        selected_sort=selected_sort,
+    )
+
+
+@app.route("/admin/update_timestamps")
+@login_required
+def update_timestamps():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    # Get all performances without timestamps, ordered by ID
+    performances = (
+        StudentPerformance.query.filter_by(timestamp=None)
+        .order_by(StudentPerformance.id)
+        .all()
+    )
+
+    if performances:
+        # Set timestamps starting from 7 days ago, with 1 hour intervals
+        base_time = datetime.utcnow() - timedelta(days=7)
+
+        for i, performance in enumerate(performances):
+            # Add hours based on ID to simulate different times
+            performance.timestamp = base_time + timedelta(hours=i)
+
+        db.session.commit()
+        flash(f"Updated {len(performances)} records with timestamps.")
+    else:
+        flash("All records already have timestamps.")
+
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/students")
+@login_required
+def admin_students():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    # Get filter parameters
+    selected_grade = request.args.get("grade", "all")
+    selected_subject = request.args.get("subject", "all")
+    search_term = request.args.get("search", "").strip()
+
+    # Get all students
+    students = User.query.filter_by(role="student").all()
+
+    # Get all performances
+    performances = StudentPerformance.query.all()
+
+    # Get unique grades and subjects for filters
+    grades = db.session.query(Question.grade).distinct().all()
+    subjects = db.session.query(Question.subject).distinct().all()
+
+    # Calculate student performance statistics
+    student_stats = []
+    for student in students:
+        student_performances = [p for p in performances if p.student_id == student.id]
+
+        # Apply filters
+        if selected_grade != "all":
+            student_performances = [
+                p for p in student_performances if p.quiz_grade == selected_grade
+            ]
+        if selected_subject != "all":
+            student_performances = [
+                p for p in student_performances if p.quiz_subject == selected_subject
+            ]
+
+        total_attempts = len(student_performances)
+
+        if student_performances:
+            total_score = sum(p.score for p in student_performances)
+            total_questions = sum(p.total_questions for p in student_performances)
+            avg_performance = (
+                (total_score * 100 / total_questions) if total_questions > 0 else 0
+            )
+
+            # Find best performance
+            best_performance = max(
+                student_performances,
+                key=lambda p: p.score / p.total_questions
+                if p.total_questions > 0
+                else 0,
+            )
+            best_percentage = (
+                (best_performance.score / best_performance.total_questions * 100)
+                if best_performance.total_questions > 0
+                else 0
+            )
+        else:
+            avg_performance = 0
+            best_percentage = 0
+
+        # Apply search filter
+        if (
+            search_term
+            and search_term.lower() not in student.username.lower()
+            and search_term.lower() not in student.email.lower()
+        ):
+            continue
+
+        student_stats.append(
+            {
+                "student": student,
+                "total_attempts": total_attempts,
+                "avg_performance": avg_performance,
+                "best_percentage": best_percentage,
+            }
+        )
+
+    return render_template(
+        "admin_students.html",
+        title="Student Analysis",
+        student_stats=student_stats,
+        grades=grades,
+        subjects=subjects,
+        selected_grade=selected_grade,
+        selected_subject=selected_subject,
+        search_term=search_term,
+    )
+
+
+@app.route("/admin/analytics")
+@login_required
+def admin_analytics():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    # Get filter parameters
+    selected_grade = request.args.get("grade", "all")
+    selected_subject = request.args.get("subject", "all")
+
+    # Get all performances
+    performances_query = StudentPerformance.query
+
+    # Apply filters
+    if selected_grade != "all":
+        performances_query = performances_query.filter_by(quiz_grade=selected_grade)
+    if selected_subject != "all":
+        performances_query = performances_query.filter_by(quiz_subject=selected_subject)
+
+    performances = performances_query.all()
+
+    # Get unique grades and subjects for filters
+    grades = db.session.query(Question.grade).distinct().all()
+    subjects = db.session.query(Question.subject).distinct().all()
+
+    # Get performance by subject (apply same filters)
+    subject_query = db.session.query(
+        StudentPerformance.quiz_subject,
+        db.func.avg(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).label("avg_score"),
+        db.func.count(StudentPerformance.id).label("attempts"),
+        db.func.min(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).label("min_score"),
+        db.func.max(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).label("max_score"),
+    ).group_by(StudentPerformance.quiz_subject)
+
+    # Apply filters to subject query
+    if selected_grade != "all":
+        subject_query = subject_query.filter_by(quiz_grade=selected_grade)
+    if selected_subject != "all":
+        subject_query = subject_query.filter_by(quiz_subject=selected_subject)
+
+    subject_performance = subject_query.order_by(
+        db.func.avg(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).desc()
+    ).all()
+
+    # Get performance by grade (apply same filters)
+    grade_query = db.session.query(
+        StudentPerformance.quiz_grade,
+        db.func.avg(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).label("avg_score"),
+        db.func.count(StudentPerformance.id).label("attempts"),
+        db.func.min(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).label("min_score"),
+        db.func.max(
+            StudentPerformance.score * 100.0 / StudentPerformance.total_questions
+        ).label("max_score"),
+    ).group_by(StudentPerformance.quiz_grade)
+
+    # Apply filters to grade query
+    if selected_grade != "all":
+        grade_query = grade_query.filter_by(quiz_grade=selected_grade)
+    if selected_subject != "all":
+        grade_query = grade_query.filter_by(quiz_subject=selected_subject)
+
+    grade_performance = grade_query.order_by(StudentPerformance.quiz_grade).all()
+
+    # Get recent activity (apply same filters)
+    recent_query = StudentPerformance.query.join(
+        User, StudentPerformance.student_id == User.id
+    )
+
+    # Apply filters to recent activity
+    if selected_grade != "all":
+        recent_query = recent_query.filter(
+            StudentPerformance.quiz_grade == selected_grade
+        )
+    if selected_subject != "all":
+        recent_query = recent_query.filter(
+            StudentPerformance.quiz_subject == selected_subject
+        )
+
+    recent_attempts = (
+        recent_query.order_by(
+            StudentPerformance.timestamp.desc()
+            if StudentPerformance.timestamp
+            else StudentPerformance.id.desc()
+        )
+        .limit(20)
+        .all()
+    )
+
+    return render_template(
+        "admin_analytics.html",
+        title="Grade & Subject Analytics",
+        subject_performance=subject_performance,
+        grade_performance=grade_performance,
+        recent_attempts=recent_attempts,
+        grades=grades,
+        subjects=subjects,
+        selected_grade=selected_grade,
+        selected_subject=selected_subject,
+    )

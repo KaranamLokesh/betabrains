@@ -6,62 +6,225 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
       <div>
         <h1 class="h2 mb-1">Admin Dashboard</h1>
-        <p class="text-muted mb-0">Welcome back, {{ current_user.username }}!</p>
+        <p class="text-muted mb-0">Overview and quick insights</p>
       </div>
       <div class="text-end">
         <a href="{{ url_for('add_question') }}" class="btn btn-primary">
           <i class="bi bi-plus-circle me-2"></i>Add Question
+        </a>
+        <a href="{{ url_for('update_timestamps') }}" class="btn btn-outline-warning ms-2">
+          <i class="bi bi-clock me-2"></i>Update Timestamps
         </a>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Navigation Cards -->
 <div class="row g-4 mb-4">
-  <!-- Quick Stats -->
   <div class="col-md-4">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm h-100">
       <div class="card-body text-center">
-        <div class="mb-2">
-          <i class="bi bi-question-circle text-primary" style="font-size: 2rem;"></i>
+        <div class="mb-3">
+          <i class="bi bi-people text-primary" style="font-size: 3rem;"></i>
         </div>
-        <h4 class="card-title mb-1">{{ questions|length }}</h4>
-        <p class="card-text text-muted mb-0">Total Questions</p>
+        <h4 class="card-title mb-2">Student Analysis</h4>
+        <p class="card-text text-muted mb-3">View detailed student performance, filter by grade/subject, and track individual progress.</p>
+        <a href="{{ url_for('admin_students') }}" class="btn btn-primary">
+          <i class="bi bi-arrow-right me-2"></i>View Students
+        </a>
       </div>
     </div>
   </div>
   
   <div class="col-md-4">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm h-100">
       <div class="card-body text-center">
-        <div class="mb-2">
-          <i class="bi bi-book text-success" style="font-size: 2rem;"></i>
+        <div class="mb-3">
+          <i class="bi bi-graph-up text-success" style="font-size: 3rem;"></i>
         </div>
-        <h4 class="card-title mb-1">{{ questions|map(attribute='subject')|unique|list|length }}</h4>
-        <p class="card-text text-muted mb-0">Subjects</p>
+        <h4 class="card-title mb-2">Grade & Subject Analytics</h4>
+        <p class="card-text text-muted mb-3">Analyze performance by grade level and subject with detailed statistics and trends.</p>
+        <a href="{{ url_for('admin_analytics') }}" class="btn btn-success">
+          <i class="bi bi-arrow-right me-2"></i>View Analytics
+        </a>
       </div>
     </div>
   </div>
   
   <div class="col-md-4">
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm h-100">
       <div class="card-body text-center">
-        <div class="mb-2">
-          <i class="bi bi-mortarboard text-info" style="font-size: 2rem;"></i>
+        <div class="mb-3">
+          <i class="bi bi-table text-info" style="font-size: 3rem;"></i>
         </div>
-        <h4 class="card-title mb-1">{{ questions|map(attribute='grade')|unique|list|length }}</h4>
-        <p class="card-text text-muted mb-0">Grade Levels</p>
+        <h4 class="card-title mb-2">Questions Management</h4>
+        <p class="card-text text-muted mb-3">Manage quiz questions, add new questions, and organize content by grade and subject.</p>
+        <a href="#questions-section" class="btn btn-info">
+          <i class="bi bi-arrow-down me-2"></i>View Questions
+        </a>
       </div>
     </div>
   </div>
 </div>
 
-<div class="row">
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="mb-2">
+          <i class="bi bi-people text-primary" style="font-size: 2rem;"></i>
+        </div>
+        <h4 class="card-title mb-1">{{ total_students }}</h4>
+        <p class="card-text text-muted mb-0">Total Students</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="mb-2">
+          <i class="bi bi-question-circle text-success" style="font-size: 2rem;"></i>
+        </div>
+        <h4 class="card-title mb-1">{{ total_questions }}</h4>
+        <p class="card-text text-muted mb-0">Total Questions</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="mb-2">
+          <i class="bi bi-clipboard-check text-info" style="font-size: 2rem;"></i>
+        </div>
+        <h4 class="card-title mb-1">{{ total_attempts }}</h4>
+        <p class="card-text text-muted mb-0">Quiz Attempts</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body text-center">
+        <div class="mb-2">
+          <i class="bi bi-graph-up text-warning" style="font-size: 2rem;"></i>
+        </div>
+        <h4 class="card-title mb-1">{{ "%.1f"|format(avg_performance) }}%</h4>
+        <p class="card-text text-muted mb-0">Avg Performance</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Insights -->
+<div class="row g-4 mb-4">
+  <!-- Top Performing Students -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-trophy me-2"></i>Top Performing Students
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Avg Score</th>
+                <th>Attempts</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for student in top_students %}
+              <tr>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="bi bi-person-circle me-2"></i>
+                    {{ student.username }}
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-success">{{ "%.1f"|format(student.avg_score) }}%</span>
+                </td>
+                <td>
+                  <span class="badge bg-secondary">{{ student.attempts }}</span>
+                </td>
+                <td>
+                  <a href="{{ url_for('admin_view_student_performance', student_id=student.student_id) }}" class="btn btn-sm btn-outline-primary" title="View Performance">
+                    <i class="bi bi-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-clock-history me-2"></i>Recent Activity
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Student</th>
+                <th>Quiz</th>
+                <th>Score</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for attempt in recent_attempts %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('admin_view_student_performance', student_id=attempt.student_id) }}" class="text-decoration-none">
+                    {{ attempt.student.username }}
+                  </a>
+                </td>
+                <td>
+                  <span class="badge bg-primary">Grade {{ attempt.quiz_grade }} - {{ attempt.quiz_subject }}</span>
+                </td>
+                <td>
+                  {% set percentage = (attempt.score / attempt.total_questions * 100) %}
+                  <span class="badge {% if percentage >= 80 %}bg-success{% elif percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ "%.1f"|format(percentage) }}%
+                  </span>
+                </td>
+                <td>
+                  <small class="text-muted">{% if attempt.timestamp %}{{ attempt.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Attempt #{{ attempt.id }}{% endif %}</small>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Questions Management -->
+<div class="row" id="questions-section">
   <div class="col-12">
     <div class="card shadow-sm">
-      <div class="card-header bg-white">
+      <div class="card-header bg-light">
         <h5 class="card-title mb-0">
-          <i class="bi bi-table me-2"></i>Existing Questions
+          <i class="bi bi-table me-2"></i>Questions Management
         </h5>
       </div>
       <div class="card-body p-0">
@@ -100,6 +263,97 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Management Section -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <h3 class="mb-4">
+      <i class="bi bi-gear me-2"></i>System Management
+    </h3>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-mortarboard text-primary" style="font-size: 2.5rem;"></i>
+        </div>
+        <h4 class="card-title mb-2">Manage Grades</h4>
+        <p class="card-text text-muted mb-3">Create and manage grade levels for students</p>
+        <a href="{{ url_for('manage_grades') }}" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-2"></i>Manage Grades
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-book text-success" style="font-size: 2.5rem;"></i>
+        </div>
+        <h4 class="card-title mb-2">Manage Subjects</h4>
+        <p class="card-text text-muted mb-3">Add subjects to specific grade levels</p>
+        <a href="{{ url_for('manage_subjects') }}" class="btn btn-success">
+          <i class="bi bi-plus-circle me-2"></i>Manage Subjects
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-people text-warning" style="font-size: 2.5rem;"></i>
+        </div>
+        <h4 class="card-title mb-2">Assign Students</h4>
+        <p class="card-text text-muted mb-3">Assign students to specific grade levels</p>
+        <a href="{{ url_for('manage_students') }}" class="btn btn-warning">
+          <i class="bi bi-person-plus me-2"></i>Manage Students
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Content Management Section -->
+<div class="row g-4 mb-4">
+  <div class="col-12">
+    <h3 class="mb-4">
+      <i class="bi bi-file-text me-2"></i>Content Management
+    </h3>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-plus-circle text-info" style="font-size: 2.5rem;"></i>
+        </div>
+        <h4 class="card-title mb-2">Add Questions</h4>
+        <p class="card-text text-muted mb-3">Create new quiz questions for students</p>
+        <a href="{{ url_for('add_question') }}" class="btn btn-info">
+          <i class="bi bi-plus-circle me-2"></i>Add Question
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center p-4">
+        <div class="mb-3">
+          <i class="bi bi-list-check text-secondary" style="font-size: 2.5rem;"></i>
+        </div>
+        <h4 class="card-title mb-2">View All Questions</h4>
+        <p class="card-text text-muted mb-3">Browse and manage existing questions</p>
+        <span class="badge bg-secondary fs-6">{{ total_questions }} Questions</span>
       </div>
     </div>
   </div>

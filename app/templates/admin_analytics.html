@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h2 mb-1">Grade & Subject Analytics</h1>
+        <p class="text-muted mb-0">Detailed performance analysis by grade and subject</p>
+      </div>
+      <div class="text-end">
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Section -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light">
+    <h5 class="card-title mb-0">
+      <i class="bi bi-funnel me-2"></i>Filter Analytics
+    </h5>
+  </div>
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('admin_analytics') }}">
+      <div class="row g-3">
+        <div class="col-md-5">
+          <label for="grade" class="form-label">Grade</label>
+          <select name="grade" id="grade" class="form-select">
+            <option value="all" {% if selected_grade == 'all' %}selected{% endif %}>All Grades</option>
+            {% for grade in grades %}
+              <option value="{{ grade[0] }}" {% if selected_grade == grade[0]|string %}selected{% endif %}>Grade {{ grade[0] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-5">
+          <label for="subject" class="form-label">Subject</label>
+          <select name="subject" id="subject" class="form-select">
+            <option value="all" {% if selected_subject == 'all' %}selected{% endif %}>All Subjects</option>
+            {% for subject in subjects %}
+              <option value="{{ subject[0] }}" {% if selected_subject == subject[0] %}selected{% endif %}>{{ subject[0] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <div class="d-flex gap-2 w-100">
+            <button type="submit" class="btn btn-primary flex-fill">
+              <i class="bi bi-search me-2"></i>Filter
+            </button>
+            <a href="{{ url_for('admin_analytics') }}" class="btn btn-outline-secondary">
+              <i class="bi bi-x-circle"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Summary Statistics -->
+{% if subject_performance or grade_performance %}
+  <div class="row g-4 mb-4">
+    {% set total_attempts = subject_performance|sum(attribute='attempts') if subject_performance else 0 %}
+    {% set avg_subject_score = (subject_performance|sum(attribute='avg_score') / subject_performance|length) if subject_performance else 0 %}
+    {% set best_subject = subject_performance|first if subject_performance else None %}
+    {% set subjects_needing_attention = subject_performance|selectattr('avg_score', '<', 70)|list %}
+    {% set worst_subject = subjects_needing_attention|first if subjects_needing_attention else None %}
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-clipboard-check text-primary" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ total_attempts }}</h4>
+          <p class="card-text text-muted mb-0">Total Attempts</p>
+          <small class="text-muted">{{ subject_performance|length if subject_performance else 0 }} subjects</small>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-graph-up text-success" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ "%.1f"|format(avg_subject_score) }}%</h4>
+          <p class="card-text text-muted mb-0">Avg Performance</p>
+          <small class="text-muted">Across all subjects</small>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-trophy text-warning" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ best_subject.quiz_subject if best_subject else 'N/A' }}</h4>
+          <p class="card-text text-muted mb-0">Best Subject</p>
+          <small class="text-muted">{{ "%.1f"|format(best_subject.avg_score) if best_subject else 'N/A' }}%</small>
+        </div>
+      </div>
+    </div>
+    
+    {% if worst_subject %}
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="mb-2">
+            <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2rem;"></i>
+          </div>
+          <h4 class="card-title mb-1">{{ worst_subject.quiz_subject }}</h4>
+          <p class="card-text text-muted mb-0">Needs Attention</p>
+          <small class="text-muted">{{ "%.1f"|format(worst_subject.avg_score) }}%</small>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+{% endif %}
+
+<!-- Performance Analytics -->
+<div class="row g-4 mb-4">
+  <!-- Performance by Subject -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-book me-2"></i>Performance by Subject
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if subject_performance %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Subject</th>
+                  <th>Avg Score</th>
+                  <th>Attempts</th>
+                  <th>Range</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for subject in subject_performance %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-bookmark me-2"></i>
+                      {{ subject.quiz_subject }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <span class="badge {% if subject.avg_score >= 80 %}bg-success{% elif subject.avg_score >= 70 %}bg-warning{% else %}bg-danger{% endif %} me-2">
+                        {{ "%.1f"|format(subject.avg_score) }}%
+                      </span>
+                      <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                        <div class="progress-bar {% if subject.avg_score >= 80 %}bg-success{% elif subject.avg_score >= 70 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             role="progressbar" style="width: {{ subject.avg_score }}%" 
+                             aria-valuenow="{{ subject.avg_score }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ subject.attempts }}</span>
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ "%.1f"|format(subject.min_score) }}% - {{ "%.1f"|format(subject.max_score) }}%</small>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center p-4">
+            <i class="bi bi-exclamation-circle text-warning" style="font-size: 2rem;"></i>
+            <p class="mt-2 text-muted">No subject data available for selected filters.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Performance by Grade -->
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-mortarboard me-2"></i>Performance by Grade
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if grade_performance %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Grade</th>
+                  <th>Avg Score</th>
+                  <th>Attempts</th>
+                  <th>Range</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for grade in grade_performance %}
+                <tr>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-mortarboard me-2"></i>
+                      Grade {{ grade.quiz_grade }}
+                    </div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <span class="badge {% if grade.avg_score >= 80 %}bg-success{% elif grade.avg_score >= 70 %}bg-warning{% else %}bg-danger{% endif %} me-2">
+                        {{ "%.1f"|format(grade.avg_score) }}%
+                      </span>
+                      <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                        <div class="progress-bar {% if grade.avg_score >= 80 %}bg-success{% elif grade.avg_score >= 70 %}bg-warning{% else %}bg-danger{% endif %}" 
+                             role="progressbar" style="width: {{ grade.avg_score }}%" 
+                             aria-valuenow="{{ grade.avg_score }}" aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">{{ grade.attempts }}</span>
+                  </td>
+                  <td>
+                    <small class="text-muted">{{ "%.1f"|format(grade.min_score) }}% - {{ "%.1f"|format(grade.max_score) }}%</small>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center p-4">
+            <i class="bi bi-exclamation-circle text-warning" style="font-size: 2rem;"></i>
+            <p class="mt-2 text-muted">No grade data available for selected filters.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="row">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-clock-history me-2"></i>Recent Activity
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        {% if recent_attempts %}
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Student</th>
+                  <th>Quiz</th>
+                  <th>Score</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for attempt in recent_attempts %}
+                <tr>
+                  <td>
+                    <a href="{{ url_for('admin_view_student_performance', student_id=attempt.student_id) }}" class="text-decoration-none">
+                      {{ attempt.student.username }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge bg-primary">Grade {{ attempt.quiz_grade }} - {{ attempt.quiz_subject }}</span>
+                  </td>
+                  <td>
+                    {% set percentage = (attempt.score / attempt.total_questions * 100) %}
+                    <span class="badge {% if percentage >= 80 %}bg-success{% elif percentage >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                      {{ "%.1f"|format(percentage) }}%
+                    </span>
+                  </td>
+                  <td>
+                    <small class="text-muted">{% if attempt.timestamp %}{{ attempt.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Attempt #{{ attempt.id }}{% endif %}</small>
+                  </td>
+                  <td>
+                    <a href="{{ url_for('quiz_results', performance_id=attempt.id) }}" class="btn btn-sm btn-outline-primary" title="View Details">
+                      <i class="bi bi-eye"></i>
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="text-center p-4">
+            <i class="bi bi-exclamation-circle text-warning" style="font-size: 2rem;"></i>
+            <p class="mt-2 text-muted">No recent activity for selected filters.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12 text-center">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %} 

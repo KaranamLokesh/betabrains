@@ -5,6 +5,7 @@ from wtforms import (
     SelectField,
     StringField,
     SubmitField,
+    TextAreaField,
 )
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 
@@ -44,9 +45,9 @@ class RegistrationForm(FlaskForm):
 
 
 class QuestionForm(FlaskForm):
-    grade = StringField("Grade", validators=[DataRequired()])
-    subject = StringField("Subject", validators=[DataRequired()])
-    question_text = StringField("Question", validators=[DataRequired()])
+    grade = SelectField("Grade", choices=[], validators=[DataRequired()])
+    subject = SelectField("Subject", choices=[], validators=[DataRequired()])
+    question_text = TextAreaField("Question", validators=[DataRequired()])
     option_a = StringField("Option A", validators=[DataRequired()])
     option_b = StringField("Option B", validators=[DataRequired()])
     option_c = StringField("Option C", validators=[DataRequired()])
@@ -56,8 +57,27 @@ class QuestionForm(FlaskForm):
         choices=[("a", "A"), ("b", "B"), ("c", "C"), ("d", "D")],
         validators=[DataRequired()],
     )
-    explanation = StringField("Explanation", validators=[DataRequired()])
+    explanation = TextAreaField("Explanation", validators=[DataRequired()])
     submit = SubmitField("Submit")
+
+
+class GradeForm(FlaskForm):
+    name = StringField("Grade Name", validators=[DataRequired()])
+    description = TextAreaField("Description")
+    submit = SubmitField("Add Grade")
+
+
+class SubjectForm(FlaskForm):
+    name = StringField("Subject Name", validators=[DataRequired()])
+    grade = SelectField("Grade", choices=[], validators=[DataRequired()])
+    description = TextAreaField("Description")
+    submit = SubmitField("Add Subject")
+
+
+class StudentAssignmentForm(FlaskForm):
+    student = SelectField("Student", choices=[], validators=[DataRequired()])
+    grade = SelectField("Grade", choices=[], validators=[DataRequired()])
+    submit = SubmitField("Assign Student")
 
 
 class QuizForm(FlaskForm):

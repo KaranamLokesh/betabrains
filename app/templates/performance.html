@@ -95,7 +95,7 @@
             <div class="fs-4 fw-bold text-{% if detail.percentage >= 80 %}success{% elif detail.percentage >= 60 %}warning{% else %}danger{% endif %}">
               {{ detail.performance.score }}/{{ detail.performance.total_questions }} ({{ "%.1f"|format(detail.percentage) }}%)
             </div>
-            <small class="text-muted">Attempt #{{ detail.performance.id }}</small>
+            <small class="text-muted">{% if detail.performance.timestamp %}{{ detail.performance.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Attempt #{{ detail.performance.id }}{% endif %}</small>
           </div>
         </div>
       </div>
@@ -129,6 +129,7 @@
               </div>
               
               <!-- Chat help for this specific question -->
+              {% if current_user.role != 'admin' %}
               <div class="bg-light p-3 rounded">
                 <div class="d-flex align-items-center justify-content-between">
                   <div>
@@ -141,6 +142,7 @@
                   </a>
                 </div>
               </div>
+              {% endif %}
             </div>
           </div>
         {% endfor %}

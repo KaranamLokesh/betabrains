@@ -64,6 +64,7 @@
       </div>
       
       <!-- Chat help for this specific question -->
+      {% if current_user.role != 'admin' %}
       <div class="mt-4 p-3 bg-light rounded">
         <div class="d-flex align-items-center justify-content-between">
           <div>
@@ -76,6 +77,7 @@
           </a>
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
   {% endfor %}

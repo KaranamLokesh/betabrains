@@ -1,125 +1,109 @@
 from app import app, db
-from app.models import Question, User
+from app.models import Grade, Question, Subject
 
+with app.app_context():
+    # Clear existing data (optional, for clean test)
+    # db.session.query(Question).delete()
+    # db.session.query(Subject).delete()
+    # db.session.query(Grade).delete()
+    # db.session.commit()
 
-def add_sample_questions():
-    with app.app_context():
-        # First, let's create an admin user if it doesn't exist
-        admin = User.query.filter_by(username="admin").first()
-        if not admin:
-            admin = User(username="admin", email="admin@example.com", role="admin")
-            admin.set_password("admin123")
-            db.session.add(admin)
-            db.session.commit()
-            print("Created admin user: admin/admin123")
+    # Add Grades
+    grade5 = Grade(name="Grade 5", description="Fifth Grade")
+    grade6 = Grade(name="Grade 6", description="Sixth Grade")
+    db.session.add_all([grade5, grade6])
+    db.session.commit()
 
-        # Sample questions for Grade 5 Math
-        math_questions = [
-            {
-                "grade": "5",
-                "subject": "Math",
-                "question_text": "What is 15 + 27?",
-                "option_a": "40",
-                "option_b": "42",
-                "option_c": "43",
-                "option_d": "41",
-                "correct_answer": "b",
-                "explanation": "15 + 27 = 42. You can solve this by adding the ones place (5+7=12, carry 1) and then the tens place (1+1+2=4).",
-            },
-            {
-                "grade": "5",
-                "subject": "Math",
-                "question_text": "What is 8 × 6?",
-                "option_a": "46",
-                "option_b": "48",
-                "option_c": "50",
-                "option_d": "52",
-                "correct_answer": "b",
-                "explanation": "8 × 6 = 48. This is a basic multiplication fact that you should memorize.",
-            },
-            {
-                "grade": "5",
-                "subject": "Math",
-                "question_text": "What is half of 24?",
-                "option_a": "10",
-                "option_b": "12",
-                "option_c": "14",
-                "option_d": "16",
-                "correct_answer": "b",
-                "explanation": "Half of 24 is 12. You can divide 24 by 2 to get 12.",
-            },
-        ]
+    # Add Subjects
+    math5 = Subject(
+        name="Mathematics", grade_id=grade5.id, description="Math for Grade 5"
+    )
+    sci5 = Subject(
+        name="Science", grade_id=grade5.id, description="Science for Grade 5"
+    )
+    math6 = Subject(
+        name="Mathematics", grade_id=grade6.id, description="Math for Grade 6"
+    )
+    sci6 = Subject(
+        name="Science", grade_id=grade6.id, description="Science for Grade 6"
+    )
+    db.session.add_all([math5, sci5, math6, sci6])
+    db.session.commit()
 
-        # Sample questions for Grade 5 Science
-        science_questions = [
-            {
-                "grade": "5",
-                "subject": "Science",
-                "question_text": "What is the largest planet in our solar system?",
-                "option_a": "Mars",
-                "option_b": "Venus",
-                "option_c": "Jupiter",
-                "option_d": "Saturn",
-                "correct_answer": "c",
-                "explanation": "Jupiter is the largest planet in our solar system. It is a gas giant and is much larger than Earth.",
-            },
-            {
-                "grade": "5",
-                "subject": "Science",
-                "question_text": "What is the process by which plants make their own food?",
-                "option_a": "Respiration",
-                "option_b": "Photosynthesis",
-                "option_c": "Digestion",
-                "option_d": "Evaporation",
-                "correct_answer": "b",
-                "explanation": "Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to make their own food (glucose).",
-            },
-            {
-                "grade": "5",
-                "subject": "Science",
-                "question_text": "What is the hardest natural substance on Earth?",
-                "option_a": "Steel",
-                "option_b": "Iron",
-                "option_c": "Diamond",
-                "option_d": "Granite",
-                "correct_answer": "c",
-                "explanation": "Diamond is the hardest natural substance on Earth. It is made of carbon atoms arranged in a crystal structure.",
-            },
-        ]
-
-        # Add all questions
-        all_questions = math_questions + science_questions
-
-        for q_data in all_questions:
-            # Check if question already exists
-            existing = Question.query.filter_by(
-                question_text=q_data["question_text"]
-            ).first()
-
-            if not existing:
-                question = Question(
-                    grade=q_data["grade"],
-                    subject=q_data["subject"],
-                    question_text=q_data["question_text"],
-                    option_a=q_data["option_a"],
-                    option_b=q_data["option_b"],
-                    option_c=q_data["option_c"],
-                    option_d=q_data["option_d"],
-                    correct_answer=q_data["correct_answer"],
-                    explanation=q_data["explanation"],
-                    author_id=admin.id,
-                )
-                db.session.add(question)
-                print(f"Added question: {q_data['question_text'][:50]}...")
-            else:
-                print(f"Question already exists: {q_data['question_text'][:50]}...")
-
-        db.session.commit()
-        print("\nSample questions added successfully!")
-        print("You can now:")
-        print("1. Login as admin (admin/admin123) to add more questions")
-        print("2. Register as a student to take quizzes")
-
-
-if __name__ == "__main__":
-    add_sample_questions()
+    # Add Questions for Grade 5 Math
+    q1 = Question(
+        grade="Grade 5",
+        subject="Mathematics",
+        grade_id=grade5.id,
+        subject_id=math5.id,
+        question_text="What is 7 + 8?",
+        option_a="13",
+        option_b="14",
+        option_c="15",
+        option_d="16",
+        correct_answer="c",
+        explanation="7 + 8 = 15.",
+        author_id=1,  # Make sure an admin user with id=1 exists
+    )
+    q2 = Question(
+        grade="Grade 5",
+        subject="Mathematics",
+        grade_id=grade5.id,
+        subject_id=math5.id,
+        question_text="What is the value of 5 x 6?",
+        option_a="30",
+        option_b="35",
+        option_c="25",
+        option_d="20",
+        correct_answer="a",
+        explanation="5 x 6 = 30.",
+        author_id=1,
+    )
+    # Add Questions for Grade 5 Science
+    q3 = Question(
+        grade="Grade 5",
+        subject="Science",
+        grade_id=grade5.id,
+        subject_id=sci5.id,
+        question_text="What do plants need for photosynthesis?",
+        option_a="Sunlight, water, and carbon dioxide",
+        option_b="Oxygen and sugar",
+        option_c="Only water",
+        option_d="Only sunlight",
+        correct_answer="a",
+        explanation="Plants need sunlight, water, and carbon dioxide for photosynthesis.",
+        author_id=1,
+    )
+    # Add Questions for Grade 6 Math
+    q4 = Question(
+        grade="Grade 6",
+        subject="Mathematics",
+        grade_id=grade6.id,
+        subject_id=math6.id,
+        question_text="What is the area of a rectangle with length 8 and width 3?",
+        option_a="24",
+        option_b="11",
+        option_c="22",
+        option_d="18",
+        correct_answer="a",
+        explanation="Area = length x width = 8 x 3 = 24.",
+        author_id=1,
+    )
+    # Add Questions for Grade 6 Science
+    q5 = Question(
+        grade="Grade 6",
+        subject="Science",
+        grade_id=grade6.id,
+        subject_id=sci6.id,
+        question_text="What is the boiling point of water?",
+        option_a="50°C",
+        option_b="100°C",
+        option_c="0°C",
+        option_d="150°C",
+        correct_answer="b",
+        explanation="Water boils at 100°C.",
+        author_id=1,
+    )
+    db.session.add_all([q1, q2, q3, q4, q5])
+    db.session.commit()
+    print("Sample grades, subjects, and questions added!")
