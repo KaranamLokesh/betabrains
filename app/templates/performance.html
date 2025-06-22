@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>My Quiz Performance</h1>
+    
+    <!-- Enhanced Filter Form -->
+    <div class="filter-section" style="border: 1px solid #ddd; padding: 20px; margin: 20px 0; background-color: #f8f9fa; border-radius: 8px;">
+        <h3>Filter and Sort Results</h3>
+        <form method="GET" action="{{ url_for('view_performance') }}">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label for="search"><strong>Search:</strong></label><br>
+                    <input type="text" name="search" id="search" placeholder="Quiz ID, Subject, or Grade" 
+                           value="{{ request.args.get('search', '') }}" 
+                           style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <small style="color: #666;">Search by quiz ID, subject name, or grade level</small>
+                </div>
+                <div>
+                    <label for="subject"><strong>Subject:</strong></label><br>
+                    <select name="subject" id="subject" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        {% for value, label in form.subject.choices %}
+                            <option value="{{ value }}" {% if request.args.get('subject') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="grade"><strong>Grade:</strong></label><br>
+                    <select name="grade" id="grade" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        {% for value, label in form.grade.choices %}
+                            <option value="{{ value }}" {% if request.args.get('grade') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="sort_by"><strong>Sort By:</strong></label><br>
+                    <select name="sort_by" id="sort_by" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        {% for value, label in form.sort_by.choices %}
+                            <option value="{{ value }}" {% if request.args.get('sort_by') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="show_only"><strong>Show Only:</strong></label><br>
+                    <select name="show_only" id="show_only" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        {% for value, label in form.show_only.choices %}
+                            <option value="{{ value }}" {% if request.args.get('show_only') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button type="submit" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Apply Filters</button>
+                <a href="{{ url_for('view_performance') }}" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">Clear All</a>
+            </div>
+        </form>
+    </div>
+    
+    {% if performance_details %}
+        <div style="margin: 20px 0; padding: 15px; background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px;">
+            <h3>Results Summary</h3>
+            <p><strong>Found {{ performance_details|length }} quiz attempt{{ 's' if performance_details|length != 1 else '' }}</strong></p>
+            {% if performance_details|length > 0 %}
+                <p><strong>Average Score:</strong> {{ "%.1f"|format(avg_score) }}%</p>
+                <p><strong>Best Score:</strong> {{ "%.1f"|format(best_percentage) }}%</p>
+            {% endif %}
+        </div>
+        
+        {% for detail in performance_details %}
+            <div class="performance-item" style="border: 1px solid #ccc; margin: 20px 0; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">{{ detail.performance.quiz_grade }} Grade - {{ detail.performance.quiz_subject }}</h3>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.2em; font-weight: bold; color: {% if detail.percentage >= 80 %}#28a745{% elif detail.percentage >= 60 %}#ffc107{% else %}#dc3545{% endif %};">
+                            {{ detail.performance.score }}/{{ detail.performance.total_questions }} ({{ "%.1f"|format(detail.percentage) }}%)
+                        </div>
+                        <small style="color: #666;">Attempt #{{ detail.performance.id }}</small>
+                    </div>
+                </div>
+                
+                <h4>Questions and Answers:</h4>
+                {% for question in detail.questions %}
+                    <div class="question" style="margin: 15px 0; padding: 15px; background-color: #f9f9f9; border-radius: 5px; border-left: 4px solid #007bff;">
+                        <p><strong>Question {{ loop.index }}:</strong> {{ question.question_text }}</p>
+                        <p><strong>Options:</strong></p>
+                        <ul>
+                            <li>A: {{ question.option_a }}</li>
+                            <li>B: {{ question.option_b }}</li>
+                            <li>C: {{ question.option_c }}</li>
+                            <li>D: {{ question.option_d }}</li>
+                        </ul>
+                        <p><strong>Correct Answer:</strong> {{ question.correct_answer.upper() }}</p>
+                        <p><strong>Explanation:</strong> {{ question.explanation }}</p>
+                        
+                        <!-- Chat help for this specific question -->
+                        <div class="question-help" style="margin-top: 10px; padding: 8px; background-color: #e3f2fd; border-radius: 3px;">
+                            <a href="{{ url_for('chat_with_tutor', question_id=question.id, context='performance') }}" 
+                               style="padding: 5px 10px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 3px; font-size: 0.9em;">
+                                Ask AI Tutor for More Help
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 40px; background-color: #f8f9fa; border-radius: 8px; margin: 20px 0;">
+            <h3>No Results Found</h3>
+            <p>No quiz results match your current filters.</p>
+            <a href="{{ url_for('select_quiz') }}" style="padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 4px;">Start Your First Quiz</a>
+        </div>
+    {% endif %}
+    
+    <div style="margin-top: 30px; text-align: center;">
+        <a href="{{ url_for('student_dashboard') }}" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 4px;">Back to Dashboard</a>
+    </div>
+{% endblock %} 

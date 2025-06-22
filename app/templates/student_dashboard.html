@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Student Dashboard</h1>
+    <p>Welcome, {{ current_user.username }}!</p>
+    <p>Ready to test your knowledge?</p>
+    <p><a href="{{ url_for('select_quiz') }}">Start a New Quiz</a></p>
+    <p><a href="{{ url_for('view_performance') }}">View My Performance</a></p>
+    <p><a href="{{ url_for('chat_with_tutor') }}">Chat with AI Tutor</a></p>
+    <p><a href="{{ url_for('practice') }}">Practice with AI Tutor</a></p>
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+{% endblock %} 

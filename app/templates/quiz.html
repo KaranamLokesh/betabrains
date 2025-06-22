@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Quiz: Grade {{ grade }}, Subject {{ subject }}</h1>
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        {% for question in questions %}
+            <div class="question" style="border: 1px solid #ddd; margin: 20px 0; padding: 20px; border-radius: 5px;">
+                <h2>Question {{ loop.index }}: {{ question.question_text }}</h2>
+                <ul class="options">
+                    <li><input type="radio" name="question_{{ question.id }}" value="a"> {{ question.option_a }}</li>
+                    <li><input type="radio" name="question_{{ question.id }}" value="b"> {{ question.option_b }}</li>
+                    <li><input type="radio" name="question_{{ question.id }}" value="c"> {{ question.option_c }}</li>
+                    <li><input type="radio" name="question_{{ question.id }}" value="d"> {{ question.option_d }}</li>
+                </ul>
+                
+                <!-- Chat help for this specific question -->
+                <div class="question-help" style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+                    <p><strong>Need help with this question?</strong></p>
+                    <a href="{{ url_for('chat_with_tutor', question_id=question.id, context='quiz') }}" 
+                       style="padding: 8px 15px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 3px;">
+                        Ask AI Tutor for Help
+                    </a>
+                </div>
+            </div>
+        {% endfor %}
+        {{ form.submit() }}
+    </form>
+{% endblock %} 

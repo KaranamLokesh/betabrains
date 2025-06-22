@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Select a Quiz</h1>
+    <p>Choose from the available quizzes below:</p>
+    <ul>
+        {% for grade, subject in quizzes %}
+        <li>
+            <a href="{{ url_for('take_quiz', grade=grade, subject=subject) }}">
+                Grade: {{ grade }}, Subject: {{ subject }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+{% endblock %} 

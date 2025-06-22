@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Add a New Question</h1>
+    <form action="" method="post">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.grade.label }}<br>
+            {{ form.grade(size=32) }}
+        </p>
+        <p>
+            {{ form.subject.label }}<br>
+            {{ form.subject(size=32) }}
+        </p>
+        <p>
+            {{ form.question_text.label }}<br>
+            {{ form.question_text(size=128) }}
+        </p>
+        <p>
+            {{ form.option_a.label }}<br>
+            {{ form.option_a(size=64) }}
+        </p>
+        <p>
+            {{ form.option_b.label }}<br>
+            {{ form.option_b(size=64) }}
+        </p>
+        <p>
+            {{ form.option_c.label }}<br>
+            {{ form.option_c(size=64) }}
+        </p>
+        <p>
+            {{ form.option_d.label }}<br>
+            {{ form.option_d(size=64) }}
+        </p>
+        <p>
+            {{ form.correct_answer.label }}<br>
+            {{ form.correct_answer() }}
+        </p>
+        <p>
+            {{ form.explanation.label }}<br>
+            {{ form.explanation(size=128) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+{% endblock %} 

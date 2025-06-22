@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Quiz Results</h1>
+    <h2>You scored {{ performance.score }} out of {{ performance.total_questions }}</h2>
+    <hr>
+    {% for question in questions %}
+        <div>
+            <h3>{{ question.question_text }}</h3>
+            <p>Your answer: {{ user_answers.get(question.id|string) }}</p>
+            {% if user_answers.get(question.id|string) == question.correct_answer %}
+                <p style="color: green;">Correct!</p>
+            {% else %}
+                <p style="color: red;">Incorrect.</p>
+                <p>Correct answer: {{ question.correct_answer }}</p>
+                <p>Explanation: {{ question.explanation }}</p>
+            {% endif %}
+        </div>
+        <hr>
+    {% endfor %}
+    <a href="{{ url_for('student_dashboard') }}">Back to Dashboard</a>
+{% endblock %} 

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Chat with AI Tutor</h1>
+    
+    {% if current_question %}
+        <div class="question-context" style="border: 2px solid #17a2b8; padding: 15px; margin: 20px 0; background-color: #e3f2fd; border-radius: 5px;">
+            <h3>Current Question Context:</h3>
+            <p><strong>Question:</strong> {{ current_question.question_text }}</p>
+            <p><strong>Options:</strong></p>
+            <ul>
+                <li>A: {{ current_question.option_a }}</li>
+                <li>B: {{ current_question.option_b }}</li>
+                <li>C: {{ current_question.option_c }}</li>
+                <li>D: {{ current_question.option_d }}</li>
+            </ul>
+            <p><em>I can help you understand this question without giving away the answer!</em></p>
+        </div>
+    {% else %}
+        <p>Ask me anything about your quizzes, explanations, or studies. I'll help you understand concepts better!</p>
+    {% endif %}
+    
+    <!-- Chat History -->
+    <div class="chat-container" style="height: 400px; border: 1px solid #ddd; padding: 15px; margin: 20px 0; overflow-y: auto; background-color: #f8f9fa;">
+        {% if chat_history %}
+            {% for message in chat_history %}
+                <div class="message" style="margin: 10px 0; padding: 10px; border-radius: 10px; {% if message.role == 'user' %}background-color: #007bff; color: white; margin-left: 20%;{% else %}background-color: #e9ecef; margin-right: 20%;{% endif %}">
+                    <strong>{{ 'You' if message.role == 'user' else 'AI Tutor' }}:</strong><br>
+                    {{ message.content }}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: #666; margin-top: 50px;">
+                {% if current_question %}
+                    Ask me about this question! I can help explain the concepts without giving away the answer.
+                {% else %}
+                    Start a conversation! Ask me about your quiz results, explanations, or any study questions.
+                {% endif %}
+            </p>
+        {% endif %}
+    </div>
+    
+    <!-- Chat Form -->
+    <form method="POST" action="{{ url_for('chat_with_tutor', question_id=current_question.id if current_question else None, context='quiz' if current_question else 'general') }}">
+        {{ form.hidden_tag() }}
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div style="flex: 1;">
+                {{ form.message(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;", placeholder="Ask about this question or anything else...") }}
+            </div>
+            {{ form.submit(style="padding: 10px 20px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;") }}
+        </div>
+    </form>
+    
+    <!-- Action Buttons -->
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('clear_chat') }}" style="padding: 8px 15px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 3px; margin-right: 10px;">Clear Chat</a>
+        {% if current_question %}
+            <a href="{{ url_for('take_quiz', grade=current_question.grade, subject=current_question.subject) }}" style="padding: 8px 15px; background-color: #ffc107; color: black; text-decoration: none; border-radius: 3px; margin-right: 10px;">Back to Quiz</a>
+        {% endif %}
+        <a href="{{ url_for('view_performance') }}" style="padding: 8px 15px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 3px; margin-right: 10px;">View Performance</a>
+        <a href="{{ url_for('student_dashboard') }}" style="padding: 8px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px;">Back to Dashboard</a>
+    </div>
+    
+    <!-- Suggested Questions -->
+    <div style="margin-top: 30px; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
+        <h3>Suggested Questions:</h3>
+        {% if current_question %}
+            <ul>
+                <li>"Can you explain the concept behind this question?"</li>
+                <li>"What should I think about when solving this type of problem?"</li>
+                <li>"Can you give me a hint without telling me the answer?"</li>
+                <li>"What are the key concepts I need to understand here?"</li>
+                <li>"Can you break down this question step by step?"</li>
+            </ul>
+        {% else %}
+            <ul>
+                <li>"Can you explain why the answer to question 2 was B?"</li>
+                <li>"I got question 3 wrong, can you help me understand the concept?"</li>
+                <li>"What topics should I focus on based on my recent quiz performance?"</li>
+                <li>"Can you give me more practice questions on multiplication?"</li>
+                <li>"How can I improve my score in Science?"</li>
+            </ul>
+        {% endif %}
+    </div>
+{% endblock %} 

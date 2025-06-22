@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>Practice with AI Tutor</h1>
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.question.label }}<br>
+            {{ form.question(size=64) }}
+        </p>
+        <p>{{ form.submit() }}</p>
+    </form>
+    {% if answer %}
+        <hr>
+        <h2>Answer:</h2>
+        <p>{{ answer }}</p>
+    {% endif %}
+{% endblock %} 
