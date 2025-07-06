@@ -353,7 +353,12 @@
         </div>
         <h4 class="card-title mb-2">View All Questions</h4>
         <p class="card-text text-muted mb-3">Browse and manage existing questions</p>
-        <span class="badge bg-secondary fs-6">{{ total_questions }} Questions</span>
+        <a href="{{ url_for('manage_questions') }}" class="btn btn-secondary">
+          <i class="bi bi-list-check me-2"></i>Manage Questions
+        </a>
+        <div class="mt-2">
+          <span class="badge bg-secondary fs-6">{{ total_questions }} Questions</span>
+        </div>
       </div>
     </div>
   </div>

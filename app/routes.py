@@ -140,17 +140,26 @@ def view_performance():
     # Get all past performances for this student
     query = StudentPerformance.query.filter_by(student_id=current_user.id)
 
-    # Apply search filter
+    # Apply search filter with exact matching
     if search_term:
-        query = query.filter(
-            db.or_(
-                StudentPerformance.id == search_term
-                if search_term.isdigit()
-                else db.literal(False),
-                StudentPerformance.quiz_subject.ilike(f"%{search_term}%"),
-                StudentPerformance.quiz_grade.ilike(f"%{search_term}%"),
+        # For numeric search, look for exact ID match
+        if search_term.isdigit():
+            query = query.filter(StudentPerformance.id == int(search_term))
+        else:
+            # For text search, use exact matching or word boundaries
+            search_term_lower = search_term.lower()
+            query = query.filter(
+                db.or_(
+                    StudentPerformance.quiz_subject.ilike(f"{search_term_lower}"),
+                    StudentPerformance.quiz_subject.ilike(f"{search_term_lower} %"),
+                    StudentPerformance.quiz_subject.ilike(f"% {search_term_lower}"),
+                    StudentPerformance.quiz_subject.ilike(f"% {search_term_lower} %"),
+                    StudentPerformance.quiz_grade.ilike(f"{search_term_lower}"),
+                    StudentPerformance.quiz_grade.ilike(f"{search_term_lower} %"),
+                    StudentPerformance.quiz_grade.ilike(f"% {search_term_lower}"),
+                    StudentPerformance.quiz_grade.ilike(f"% {search_term_lower} %"),
+                )
             )
-        )
 
     # Apply subject filter
     if selected_subject and selected_subject != "all":
@@ -441,6 +450,24 @@ def manage_subjects():
         title="Manage Subjects",
         form=form,
         subjects=subjects,
+    )
+
+
+@app.route("/admin/manage_questions")
+@login_required
+def manage_questions():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    # Get all questions with author information
+    questions = (
+        Question.query.join(User, Question.author_id == User.id)
+        .order_by(Question.created_at.desc())
+        .all()
+    )
+
+    return render_template(
+        "admin_manage_questions.html", title="Manage Questions", questions=questions
     )
 
 
@@ -944,13 +971,28 @@ def admin_students():
             avg_performance = 0
             best_percentage = 0
 
-        # Apply search filter
-        if (
-            search_term
-            and search_term.lower() not in student.username.lower()
-            and search_term.lower() not in student.email.lower()
-        ):
-            continue
+        # Apply search filter with exact word matching
+        if search_term:
+            search_lower = search_term.lower()
+            username_lower = student.username.lower()
+            email_lower = student.email.lower()
+            
+            # Check for exact match or word boundary match
+            username_match = (
+                username_lower == search_lower or
+                username_lower.startswith(search_lower + ' ') or
+                username_lower.endswith(' ' + search_lower) or
+                ' ' + search_lower + ' ' in username_lower
+            )
+            email_match = (
+                email_lower == search_lower or
+                email_lower.startswith(search_lower + ' ') or
+                email_lower.endswith(' ' + search_lower) or
+                ' ' + search_lower + ' ' in email_lower
+            )
+            
+            if not username_match and not email_match:
+                continue
 
         student_stats.append(
             {
