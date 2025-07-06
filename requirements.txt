@@ -6,3 +6,5 @@ Flask-WTF
 openai
 python-dotenv
 email_validator
+psycopg2-binary
+gunicorn

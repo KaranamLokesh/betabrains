@@ -62,7 +62,11 @@ A modern, intelligent quiz web application for schools and students, featuring a
    FLASK_ENV=development
    SECRET_KEY=your_secret_key_here
    OPENAI_API_KEY=your_openai_api_key_here
+   # For PostgreSQL, set DATABASE_URL as below:
+   # DATABASE_URL=postgresql+psycopg2://username:password@localhost:5432/dbname
    ```
+   - If `DATABASE_URL` is not set, the app will use SQLite by default.
+   - To use PostgreSQL, ensure you have a running PostgreSQL server and set the `DATABASE_URL` accordingly.
 
 5. **Initialize the database:**
    ```bash
@@ -132,3 +136,56 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for better education and learning experiences.**
+
+## ☁️ Deploying to Azure App Service
+
+1. **Provision Azure Resources:**
+   - Create an Azure App Service (Linux) and an Azure Database for PostgreSQL.
+
+2. **Configure Environment Variables in Azure:**
+   - Set `DATABASE_URL` to your PostgreSQL connection string (e.g., `postgresql+psycopg2://username:password@host:port/dbname`).
+   - Set `SECRET_KEY` and `OPENAI_API_KEY` as needed.
+   - Set `FLASK_ENV=production`.
+
+3. **Set Startup Command:**
+   - Use the following startup command for Azure:
+     ```
+     gunicorn -w 4 -b 0.0.0.0:8000 app.wsgi:application
+     ```
+
+4. **Migrate the Database:**
+   - In the Azure Cloud Shell or locally (with the same `DATABASE_URL`), run:
+     ```
+     flask db upgrade
+     ```
+
+5. **Deploy Code:**
+   - Push your code to Azure using GitHub Actions, Azure CLI, or FTP as preferred.
+
+6. **Access the App:**
+   - Visit your Azure App Service URL to use the deployed app.
+
+## 🧪 Local Testing with PostgreSQL
+
+1. **Install PostgreSQL locally** (if not already installed).
+2. **Create a database and user:**
+   ```bash
+   psql -U postgres
+   CREATE DATABASE betabrains_db;
+   CREATE USER betabrains_user WITH PASSWORD 'betabrains_pass';
+   GRANT ALL PRIVILEGES ON DATABASE betabrains_db TO betabrains_user;
+   \q
+   ```
+3. **Copy `.env.example` to `.env` and update values as needed.**
+4. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+5. **Run migrations:**
+   ```bash
+   flask db upgrade
+   ```
+6. **Run the app:**
+   ```bash
+   flask run
+   ```

@@ -277,7 +277,7 @@ def admin_dashboard():
             db.func.count(StudentPerformance.id).label("attempts"),
         )
         .join(StudentPerformance, User.id == StudentPerformance.student_id)
-        .group_by(User.id, User.username)
+        .group_by(User.id, User.username, StudentPerformance.student_id)
         .order_by(
             db.func.avg(
                 StudentPerformance.score * 100.0 / StudentPerformance.total_questions

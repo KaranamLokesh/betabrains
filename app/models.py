@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(512))
     role = db.Column(db.String(20), default="student")  # student or admin
     grade_id = db.Column(db.Integer, db.ForeignKey("grade.id"), nullable=True)
 
@@ -63,7 +63,7 @@ class Subject(db.Model):
     questions = db.relationship("Question", backref="subject_obj", lazy="dynamic")
 
     def __repr__(self):
-        return f"<Subject {self.name} - {self.grade.name}>"
+        return f"<Subject {self.name}>"
 
 
 class Question(db.Model):
