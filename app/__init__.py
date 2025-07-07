@@ -13,3 +13,4 @@ login = LoginManager(app)
 login.login_view = "login"  # type: ignore
 
 from app import models, routes
+

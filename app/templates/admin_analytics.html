@@ -45,6 +45,14 @@
             {% endfor %}
           </select>
         </div>
+        <div class="col-md-5">
+          <label for="quiz" class="form-label">Quiz</label>
+          <select name="quiz" id="quiz" class="form-select">
+            {% for quiz_id, quiz_title in quizzes %}
+              <option value="{{ quiz_id }}" {% if selected_quiz == quiz_id %}selected{% endif %}>{{ quiz_title }}{% if quiz_id != 'all' %} (ID: {{ quiz_id }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
         <div class="col-md-2 d-flex align-items-end">
           <div class="d-flex gap-2 w-100">
             <button type="submit" class="btn btn-primary flex-fill">

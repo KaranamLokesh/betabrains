@@ -1,4 +1,6 @@
+import csv
 from datetime import datetime, timedelta
+from io import TextIOWrapper
 
 from flask import flash, redirect, render_template, request, session, url_for
 from flask_login import current_user, login_required, login_user, logout_user
@@ -976,21 +978,21 @@ def admin_students():
             search_lower = search_term.lower()
             username_lower = student.username.lower()
             email_lower = student.email.lower()
-            
+
             # Check for exact match or word boundary match
             username_match = (
-                username_lower == search_lower or
-                username_lower.startswith(search_lower + ' ') or
-                username_lower.endswith(' ' + search_lower) or
-                ' ' + search_lower + ' ' in username_lower
+                username_lower == search_lower
+                or username_lower.startswith(search_lower + " ")
+                or username_lower.endswith(" " + search_lower)
+                or " " + search_lower + " " in username_lower
             )
             email_match = (
-                email_lower == search_lower or
-                email_lower.startswith(search_lower + ' ') or
-                email_lower.endswith(' ' + search_lower) or
-                ' ' + search_lower + ' ' in email_lower
+                email_lower == search_lower
+                or email_lower.startswith(search_lower + " ")
+                or email_lower.endswith(" " + search_lower)
+                or " " + search_lower + " " in email_lower
             )
-            
+
             if not username_match and not email_match:
                 continue
 
@@ -1024,6 +1026,7 @@ def admin_analytics():
     # Get filter parameters
     selected_grade = request.args.get("grade", "all")
     selected_subject = request.args.get("subject", "all")
+    selected_quiz = request.args.get("quiz", "all")
 
     # Get all performances
     performances_query = StudentPerformance.query
@@ -1033,6 +1036,28 @@ def admin_analytics():
         performances_query = performances_query.filter_by(quiz_grade=selected_grade)
     if selected_subject != "all":
         performances_query = performances_query.filter_by(quiz_subject=selected_subject)
+
+    # Get quizzes for the selected grade/subject
+    from app.models import Grade, Quiz, Subject
+
+    quizzes = []
+    if selected_grade != "all" and selected_subject != "all":
+        grade_obj = Grade.query.filter_by(name=selected_grade).first()
+        subject_obj = (
+            Subject.query.filter_by(
+                name=selected_subject, grade_id=grade_obj.id if grade_obj else None
+            ).first()
+            if grade_obj
+            else None
+        )
+        if grade_obj and subject_obj:
+            quizzes = Quiz.query.filter_by(
+                grade_id=grade_obj.id, subject_id=subject_obj.id
+            ).all()
+    quiz_choices = [("all", "All Quizzes")] + [(str(q.id), q.title) for q in quizzes]
+
+    if selected_quiz != "all":
+        performances_query = performances_query.filter_by(quiz_id=int(selected_quiz))
 
     performances = performances_query.all()
 
@@ -1123,6 +1148,110 @@ def admin_analytics():
         recent_attempts=recent_attempts,
         grades=grades,
         subjects=subjects,
+        quizzes=quiz_choices,
         selected_grade=selected_grade,
         selected_subject=selected_subject,
+        selected_quiz=selected_quiz,
+    )
+
+
+@app.route("/admin/upload_questions", methods=["GET", "POST"])
+@login_required
+def upload_questions():
+    if current_user.role != "admin":
+        return redirect(url_for("index"))
+
+    message = None
+    success_count = 0
+    error_rows = []
+
+    if request.method == "POST":
+        file = request.files.get("csv_file")
+        if not file or not file.filename.endswith(".csv"):
+            message = "Please upload a valid CSV file."
+        else:
+            try:
+                stream = TextIOWrapper(file.stream, encoding="utf-8")
+                reader = csv.DictReader(stream)
+                required_fields = [
+                    "grade",
+                    "subject",
+                    "quiz_title",
+                    "question_text",
+                    "option_a",
+                    "option_b",
+                    "option_c",
+                    "option_d",
+                    "correct_answer",
+                    "explanation",
+                ]
+                from app.models import Grade, Quiz, Subject
+
+                for i, row in enumerate(reader, start=2):
+                    if not all(
+                        field in row and row[field].strip() for field in required_fields
+                    ):
+                        error_rows.append(i)
+                        continue
+                    # Find or create Grade
+                    grade_obj = Grade.query.filter_by(name=row["grade"].strip()).first()
+                    if not grade_obj:
+                        grade_obj = Grade(name=row["grade"].strip())
+                        db.session.add(grade_obj)
+                        db.session.flush()
+                    # Find or create Subject
+                    subject_obj = Subject.query.filter_by(
+                        name=row["subject"].strip(), grade_id=grade_obj.id
+                    ).first()
+                    if not subject_obj:
+                        subject_obj = Subject(
+                            name=row["subject"].strip(), grade_id=grade_obj.id
+                        )
+                        db.session.add(subject_obj)
+                        db.session.flush()
+                    # Find or create Quiz
+                    quiz_obj = Quiz.query.filter_by(
+                        title=row["quiz_title"].strip(),
+                        grade_id=grade_obj.id,
+                        subject_id=subject_obj.id,
+                    ).first()
+                    if not quiz_obj:
+                        quiz_obj = Quiz(
+                            title=row["quiz_title"].strip(),
+                            grade_id=grade_obj.id,
+                            subject_id=subject_obj.id,
+                            created_by=current_user.username,
+                        )
+                        db.session.add(quiz_obj)
+                        db.session.flush()
+                    question = Question(
+                        grade=row["grade"].strip(),
+                        subject=row["subject"].strip(),
+                        question_text=row["question_text"].strip(),
+                        option_a=row["option_a"].strip(),
+                        option_b=row["option_b"].strip(),
+                        option_c=row["option_c"].strip(),
+                        option_d=row["option_d"].strip(),
+                        correct_answer=row["correct_answer"].strip().lower(),
+                        explanation=row["explanation"].strip(),
+                        author_id=current_user.id,
+                        uploaded_by=current_user.username,
+                        quiz_id=quiz_obj.id,
+                    )
+                    db.session.add(question)
+                    success_count += 1
+                db.session.commit()
+                if success_count:
+                    message = f"Successfully uploaded {success_count} questions."
+                if error_rows:
+                    message = (
+                        message or ""
+                    ) + f" Skipped rows: {', '.join(map(str, error_rows))}."
+            except Exception as e:
+                message = f"Error processing file: {e}"
+
+    return render_template(
+        "admin_upload_questions.html",
+        title="Upload Questions (CSV)",
+        message=message,
     )

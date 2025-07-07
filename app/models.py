@@ -85,6 +85,10 @@ class Question(db.Model):
     # New foreign key relationships
     grade_id = db.Column(db.Integer, db.ForeignKey("grade.id"), nullable=True)
     subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=True)
+    uploaded_by = db.Column(
+        db.String(64), nullable=True
+    )  # Admin username or ID who uploaded via CSV
+    quiz_id = db.Column(db.Integer, db.ForeignKey("quiz.id"), nullable=True)
 
     def __repr__(self):
         return f"<Question {self.id}: {self.question_text[:50]}...>"
@@ -101,3 +105,20 @@ class StudentPerformance(db.Model):
 
     def __repr__(self):
         return f"<StudentPerformance {self.student_id}: {self.score}/{self.total_questions}>"
+
+
+class Quiz(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    grade_id = db.Column(db.Integer, db.ForeignKey("grade.id"), nullable=False)
+    subject_id = db.Column(db.Integer, db.ForeignKey("subject.id"), nullable=False)
+    description = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by = db.Column(db.String(64), nullable=True)
+
+    grade = db.relationship("Grade", backref="quizzes")
+    subject = db.relationship("Subject", backref="quizzes")
+    questions = db.relationship("Question", backref="quiz", lazy="dynamic")
+
+    def __repr__(self):
+        return f"<Quiz {self.title} (Grade {self.grade_id}, Subject {self.subject_id})>"

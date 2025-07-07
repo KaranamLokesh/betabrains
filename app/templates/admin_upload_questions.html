@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-lg-7">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <h2 class="card-title mb-3 text-center">
+          <i class="bi bi-upload me-2"></i>Upload Quiz Questions (CSV)
+        </h2>
+        {% if message %}
+          <div class="alert alert-info">{{ message }}</div>
+        {% endif %}
+        <form method="POST" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label for="csv_file" class="form-label">Select CSV File</label>
+            <input type="file" class="form-control" id="csv_file" name="csv_file" accept=".csv" required>
+          </div>
+          <div class="d-grid mb-3">
+            <button type="submit" class="btn btn-primary btn-lg">
+              <i class="bi bi-upload me-2"></i>Upload
+            </button>
+          </div>
+        </form>
+        <hr>
+        <h5 class="mb-2">CSV Format</h5>
+        <div class="alert alert-secondary small">
+          <strong>Required columns:</strong><br>
+          <code>grade,subject,quiz_title,question_text,option_a,option_b,option_c,option_d,correct_answer,explanation</code><br>
+          <strong>Example row:</strong><br>
+          <code>Grade 5,Mathematics,Quiz 1,What is 2+2?,2,3,4,5,c,The answer is 4 because 2+2=4.</code>
+        </div>
+        <p class="text-muted small mb-0">
+          The <strong>uploaded_by</strong> column is set automatically to your username.<br>
+          Only valid rows will be uploaded. Errors will be reported after upload.<br>
+          <strong>quiz_title</strong> allows you to create multiple quizzes for the same grade and subject.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 
