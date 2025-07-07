@@ -1,9 +1,27 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-md-6 col-lg-5">
-    <div class="card shadow-sm">
+<!-- Hero Section -->
+<div class="row align-items-center justify-content-center mt-5 mb-4">
+  <div class="col-lg-6 text-center text-lg-start mb-4 mb-lg-0">
+    <h1 class="display-4 fw-bold mb-3">
+      <i class="bi bi-lightbulb text-primary"></i> Welcome to Betabrains!
+    </h1>
+    <p class="lead text-muted mb-4">
+      The modern, AI-powered quiz platform for students and teachers.<br>
+      Practice, compete, and track your progress with ease.
+    </p>
+    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center justify-content-lg-start">
+      <a href="{{ url_for('register') }}" class="btn btn-success btn-lg px-4">
+        <i class="bi bi-person-plus me-2"></i>Get Started
+      </a>
+      <a href="#features" class="btn btn-outline-primary btn-lg px-4">
+        <i class="bi bi-stars me-2"></i>Learn More
+      </a>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card shadow-lg border-0">
       <div class="card-body p-4">
         <h2 class="card-title text-center mb-4">Sign In</h2>
         <form action="" method="post" novalidate autocomplete="off">
@@ -34,6 +52,54 @@
           <span>New User? <a href="{{ url_for('register') }}">Click to Register!</a></span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features Section -->
+<div id="features" class="row justify-content-center mt-5 mb-4">
+  <div class="col-lg-10">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 text-center">
+          <div class="card-body py-4">
+            <i class="bi bi-graph-up-arrow text-primary" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-3 mb-2">Track Your Progress</h5>
+            <p class="text-muted mb-0">Visualize your performance, see your strengths, and improve over time with detailed analytics.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 text-center">
+          <div class="card-body py-4">
+            <i class="bi bi-robot text-success" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-3 mb-2">AI-Powered Practice</h5>
+            <p class="text-muted mb-0">Get instant feedback and explanations from our AI tutor. Practice smarter, not harder.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100 text-center">
+          <div class="card-body py-4">
+            <i class="bi bi-people text-warning" style="font-size: 2.5rem;"></i>
+            <h5 class="mt-3 mb-2">Compete & Collaborate</h5>
+            <p class="text-muted mb-0">Challenge friends, join leaderboards, and learn together in a fun, interactive environment.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Call to Action -->
+<div class="row justify-content-center mt-5 mb-4">
+  <div class="col-lg-8 text-center">
+    <div class="p-4 bg-primary text-white rounded shadow-sm">
+      <h3 class="fw-bold mb-2">Ready to boost your learning?</h3>
+      <p class="mb-3">Sign up now and start your journey with Betabrains!</p>
+      <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-4">
+        <i class="bi bi-person-plus me-2"></i>Register for Free
+      </a>
     </div>
   </div>
 </div>
